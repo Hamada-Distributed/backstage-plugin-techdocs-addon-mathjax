@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useShadowRootElements } from '@backstage/plugin-techdocs-react';
-import { init } from 'mathjax';
-
+const { init } = require('mathjax');
 
 
 
