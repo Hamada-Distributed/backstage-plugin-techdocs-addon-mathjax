@@ -1,30 +1,55 @@
 import { useEffect } from 'react';
+import { useShadowRootElements } from '@backstage/plugin-techdocs-react';
+import { init } from 'mathjax';
 
-function runTypeSet(){
-    if (typeof (<any>window)?.MathJax !== "undefined"){
-      console.log("MathJax was found and typeset is called!");
-      (<any>window).MathJax.typeset();
-      return true;
-    }
-    return false;
+
+
+
+const mathjaxConfig = {
+  loader: {
+    load: ['input/tex', 'output/svg'],
+  },
+  tex: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    processEscapes: true,
+    processEnvironments: true
+  },
+  options: {
+    ignoreHtmlClass: ".*|",
+    processHtmlClass: "arithmatex"
+  }
 };
 
 
-export const MathjaxAddon = () => {  
+let mathjax: any;
+let mathjaxPromise = init(mathjaxConfig);
+
+
+async function processMathjax(preBlock: any){
+  if (!mathjax){
+    mathjax = await mathjaxPromise;
+  }
+
+  const blockText = preBlock.innerText;
+  const svg = mathjax.tex2svg( blockText );
+  const svgHTML = mathjax.startup.adaptor.outerHTML(svg);
+  preBlock.innerHTML = svgHTML;
+
+};
+
+
+export const MathjaxAddon = () => {
+
+  const mathjaxPreBlocks = useShadowRootElements<HTMLSpanElement>(['.arithmatex']);
+
   useEffect(()=>{
 
-    if (!runTypeSet()){
-      console.log("No MathJax was found, now loading!");
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
-      script.async = true;
-      document.body.appendChild(script);
-      setTimeout(()=>{
-        runTypeSet();      
-      }, 500);
-    };
+    mathjaxPreBlocks.forEach(preBlock =>{
+      processMathjax(preBlock);
+    });
 
-  }, []);
+  }, [mathjaxPreBlocks]);
   
   return null;
 };
